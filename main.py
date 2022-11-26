@@ -80,6 +80,12 @@ async def move_select_user(
     source_channel: discord.VoiceChannel,
     destination_channel: discord.VoiceChannel,
 ):
+    if len(source_channel.members) == 0:
+        await interaction.response.send_message(
+            "Move action cancelled: Source channel has no members", ephemeral=True
+        )
+        return
+
     await interaction.response.send_message(
         "Select a user to move",
         view=SelectUserView(source_channel, destination_channel),
