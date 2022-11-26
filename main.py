@@ -6,8 +6,6 @@ from discord.ui import View
 from discord import SelectOption
 from discord import Interaction
 from discord import VoiceChannel
-
-
 from dotenv import load_dotenv
 
 load_dotenv()
