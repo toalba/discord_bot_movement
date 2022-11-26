@@ -4,8 +4,6 @@ from discord import app_commands
 
 from dotenv import load_dotenv
 
-import traceback
-
 load_dotenv()
 
 TEST_GUILD = discord.Object(int(os.getenv("TEST_GUILD")))
