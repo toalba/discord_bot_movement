@@ -1,12 +1,10 @@
 import os
 import discord
 from discord import app_commands
-from discord.ext.commands import has_permissions
 from discord.ui import Select
 from discord.ui import View
 from discord import SelectOption
 from discord import Interaction
-from discord import Button
 from discord import VoiceChannel
 
 
