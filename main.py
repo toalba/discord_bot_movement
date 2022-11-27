@@ -66,6 +66,7 @@ class SelectUserView(View):
 
 
 @client.tree.command(guild=TEST_GUILD, description="Move user into a voice channel")
+@app_commands.checks.has_permissions(move_members=True)
 async def mass_move_channel(
     interaction: Interaction,
     source_channel: VoiceChannel,
@@ -80,6 +81,11 @@ async def mass_move_channel(
         ephemeral=True,
     )
 
+@mass_move_channel.error
+async def mass_move_channel_error(interaction: Interaction, error: Exception):
+    await interaction.response.send_message(
+        f"Move action cancelled: You do not have the required permissions", ephemeral=True, delete_after=60
+    )
 
 @client.tree.command(guild=TEST_GUILD, description="Move user into a voice channel")
 @app_commands.checks.has_permissions(move_members=True)
@@ -102,7 +108,6 @@ async def move_select_user(
         ephemeral=True,
         delete_after=60,
     )
-
 
 @move_select_user.error
 async def move_select_user_error(interaction, error):
