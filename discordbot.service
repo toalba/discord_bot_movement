@@ -1,0 +1,6 @@
+[Unit]
+Description=MC Server with modpack ATF4
+[Service]
+Type=simple
+User=mcserver
+ExecStart=./home/dc-bot/discord_bot_movement/start_dc_bot.sh
