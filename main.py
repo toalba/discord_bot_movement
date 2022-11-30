@@ -65,7 +65,7 @@ class SelectUserView(View):
         )
 
 
-@client.tree.command(guild=TEST_GUILD, description="Move user into a voice channel")
+@client.tree.command(guild=TEST_GUILD, description="Move users into a voice channel")
 @app_commands.checks.has_permissions(move_members=True)
 async def mass_move_channel(
     interaction: Interaction,
