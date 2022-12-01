@@ -1,5 +1,7 @@
-import discord
 import json
+import os
+
+import discord
 
 
 class ConfigMeta(type):
@@ -15,13 +17,20 @@ class ConfigMeta(type):
 class Config(metaclass=ConfigMeta):
     guilds = dict()
 
+    def __init__(self, config_path: str) -> None:
+        self.config_path = config_path
+        if not os.path.exists(self.config_path):
+            print("Warning: Config file not found, creating new config on save")
+        ...
+
     def read_config(self):
-        # TODO guard(file does not exist)
-        with open("./config/guilds.json", "r") as read_file:
+        with open(self.config_path, "r") as read_file:
             self.guilds: dict = json.load(read_file)
 
-    def write_config(self):
-        with open("./config/config2.json", "w") as write_file:
+    def write_config(self, write_path: str = None):
+        if write_path is None:
+            write_path = self.config_path
+        with open(write_path, "w") as write_file:
             json.dump(self.guilds, write_file)
 
     def get_guild_log_channel(self, guild_query: discord.Object) -> discord.Object:
@@ -34,6 +43,7 @@ class Config(metaclass=ConfigMeta):
         return res
 
     def _add_guild(self, guild: discord.Object) -> None:
+        # TODO add new guild with provided id
         pass
 
     def set_guild_log_channel(self, guild_query: discord.Object) -> None:
