@@ -1,0 +1,13 @@
+{
+  "guilds": {
+    "guild": [
+      {
+        "id": "4321",
+        "config": {
+          "log_channel": "54321"
+        },
+        "name": "Example Guild"
+      }
+    ]
+  }
+}
