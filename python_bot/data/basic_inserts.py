@@ -1,14 +1,11 @@
 import os
 
-import discord
-import sqlalchemy.orm as orm
-
 import python_bot.data.db_session as db_session
+import python_bot.data.models as models
 from python_bot.data import initial_data
 
 INSERT_TESTDATA = True
 
-discord.Guild(13).owner.display_name
 
 def main():
     init_db()
@@ -19,7 +16,7 @@ def main():
 
 
 def insert_rows(rows: list):
-    session: orm.Session = db_session.factory()
+    session = db_session.create_session()
     for row in rows:
         session.add(row)
     session.commit()
