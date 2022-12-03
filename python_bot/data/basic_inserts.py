@@ -4,15 +4,14 @@ import python_bot.data.db_session as db_session
 import python_bot.data.models as models
 from python_bot.data import initial_data
 
-INSERT_TESTDATA = True
-
 
 def main():
     init_db()
+    session = db_session.create_session()
+    if session.query(models.ChannelType).count() > 0:
+        print("Nothing inserted: Table 'ChannelType' is not empty")
+        return
     insert_rows(initial_data.channel_types)
-    if INSERT_TESTDATA:
-        insert_rows(initial_data.guilds)
-        insert_rows(initial_data.channels)
 
 
 def insert_rows(rows: list):

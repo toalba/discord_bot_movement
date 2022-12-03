@@ -18,7 +18,7 @@ def global_init(db_file: str):
     connection_string = "sqlite:///" + db_file.strip()
     print(f"Connecting to DB with {connection_string}")
 
-    engine = create_engine(connection_string, echo=True)
+    engine = create_engine(connection_string, echo=False)
     __factory = orm.sessionmaker(bind=engine)
 
     # noinspection PyUnresolvedReferences

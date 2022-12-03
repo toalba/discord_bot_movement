@@ -1,9 +1,10 @@
-import datetime
-
 from python_bot.data.models import ChannelType, Guild, Channel
 
 # Channel Types
 channel_types = list()
+channel_types.append(ChannelType(
+    id="log_admin",
+    description="log changes to the guild config, e.g. setting log channels"))
 channel_types.append(ChannelType(
     id="log_move",
     description="log the usage of commands for moving multiple voice users"))
