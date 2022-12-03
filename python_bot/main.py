@@ -1,11 +1,12 @@
 import os
+
 import discord
+from discord import Interaction
+from discord import SelectOption
+from discord import VoiceChannel
 from discord import app_commands
 from discord.ui import Select
 from discord.ui import View
-from discord import SelectOption
-from discord import Interaction
-from discord import VoiceChannel
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -68,9 +69,9 @@ class SelectUserView(View):
 @client.tree.command(guild=TEST_GUILD, description="Move users into a voice channel")
 @app_commands.checks.has_permissions(move_members=True)
 async def mass_move_channel(
-    interaction: Interaction,
-    source_channel: VoiceChannel,
-    destination_channel: VoiceChannel,
+        interaction: Interaction,
+        source_channel: VoiceChannel,
+        destination_channel: VoiceChannel,
 ):
     source_channel_members = source_channel.members
     for member in source_channel_members:
@@ -81,18 +82,20 @@ async def mass_move_channel(
         ephemeral=True,
     )
 
+
 @mass_move_channel.error
 async def mass_move_channel_error(interaction: Interaction, error: Exception):
     await interaction.response.send_message(
         f"Move action cancelled: You do not have the required permissions", ephemeral=True, delete_after=60
     )
 
+
 @client.tree.command(guild=TEST_GUILD, description="Move user into a voice channel")
 @app_commands.checks.has_permissions(move_members=True)
 async def move_select_user(
-    interaction: Interaction,
-    source_channel: VoiceChannel,
-    destination_channel: VoiceChannel,
+        interaction: Interaction,
+        source_channel: VoiceChannel,
+        destination_channel: VoiceChannel,
 ):
     if len(source_channel.members) == 0:
         await interaction.response.send_message(
@@ -108,6 +111,7 @@ async def move_select_user(
         ephemeral=True,
         delete_after=60,
     )
+
 
 @move_select_user.error
 async def move_select_user_error(interaction, error):
