@@ -3,11 +3,15 @@ import os
 import discord
 from discord import Interaction
 from discord import SelectOption
+from discord import TextChannel
+from discord import Thread
 from discord import VoiceChannel
 from discord import app_commands
 from discord.ui import Select
 from discord.ui import View
 from dotenv import load_dotenv
+
+from python_bot.logger import Logger, LOG_MOVE, LOG_ADMIN
 
 load_dotenv()
 
@@ -29,6 +33,7 @@ class MyClient(discord.Client):
         await self.tree.sync(guild=TEST_GUILD)
 
 
+logger = Logger()
 client = MyClient()
 
 
@@ -121,6 +126,22 @@ async def move_select_user_error(interaction, error):
             ephemeral=True,
             delete_after=60,
         )
+
+
+@client.tree.command(guild=TEST_GUILD, description="Set log channel of specific type")
+@app_commands.choices(log_type=[
+    app_commands.Choice[str](name="Move", value=LOG_MOVE),
+    app_commands.Choice[str](name="Admin", value=LOG_ADMIN),
+])
+async def set_log_channel(interaction: Interaction, log_type: app_commands.Choice[str],
+                          log_channel: TextChannel | Thread):
+    admin_log_channel = Logger.get_log_channel_admin(guild=interaction.guild)
+    if admin_log_channel:
+        c = client.get_channel(admin_log_channel.id)
+        await c.send("Something was changed!")
+    logger.set_log_channel(channel=log_channel, log_type=log_type.value, guild=interaction.guild)
+    await log_channel.send(f"This channel is now the log channel for `{log_type.name}` commands", delete_after=60)
+    await interaction.response.send_message(f"You have set the `{log_type.name}` log channel to #{log_channel}")
 
 
 client.run(os.getenv("DISCORD_TOKEN"))

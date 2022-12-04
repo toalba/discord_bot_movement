@@ -22,7 +22,7 @@ def test_get_log_channel(example_logger, example_guild, example_channel) -> None
     session.add(example_guild)
     session.add(example_channel)
     # query
-    log_channel = Logger._get_log_channel_move(discord.Object(example_guild.id), session=session)
+    log_channel = Logger.get_log_channel_move(discord.Object(example_guild.id), session=session)
     assert log_channel.id == example_channel.channel_id
 
 
