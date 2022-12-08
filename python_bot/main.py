@@ -1,3 +1,4 @@
+import datetime
 import os
 
 import discord
@@ -10,12 +11,28 @@ from discord import app_commands
 from discord.ui import Select
 from discord.ui import View
 from dotenv import load_dotenv
+from sqlalchemy.exc import NoResultFound
 
+import python_bot.data.db_session as db_session
+import python_bot.data.models as models
 from python_bot.logger import Logger, LOG_MOVE, LOG_ADMIN
 
 load_dotenv()
 
+# semantic versioning
+BOT_VERSION_MAJOR = 1  # Breaking changes, may require backup or reset of database
+BOT_VERSION_MINOR = 0  # New features or significant changes, but still compatible with db
+BOT_VERSION_PATCH = 0  # Bug fixes, no changes in functionality or interfaces
+BOT_VERSION_IDENT = "alpha.1"  # Identifier for development and testing builds
+
 TEST_GUILD = discord.Object(int(os.getenv("TEST_GUILD")))
+
+
+def init_db():
+    top_folder = os.path.dirname(__file__)
+    rel_file = os.path.join("db", "config.sqlite")
+    db_file = os.path.abspath(os.path.join(top_folder, rel_file))
+    db_session.global_init(db_file)
 
 
 class MyClient(discord.Client):
@@ -24,16 +41,34 @@ class MyClient(discord.Client):
         super().__init__(intents=intents)
 
         self.tree = app_commands.CommandTree(self)
+        self.logger = Logger()
 
     async def on_ready(self):
         print(f"Logged in as {self.user} (ID: {self.user.id})")
         print("------")
+        init_db()
+        await update_guild_db()
 
     async def setup_hook(self) -> None:
         await self.tree.sync(guild=TEST_GUILD)
 
 
-logger = Logger()
+async def update_guild_db():
+    """iterate guilds, where the bot is a member and update or add them to the database"""
+    for g in client.guilds:
+        session = db_session.create_session()
+        try:
+            row: models.Guild = session.query(models.Guild).filter_by(id=g.id).one()
+            row.name = g.name
+            row.updated_at = datetime.datetime.now()
+        except NoResultFound:
+            owner = await client.fetch_user(g.owner_id)
+            session.add(models.Guild(id=g.id, name=g.name, owner=owner.display_name))
+        finally:
+            session.commit()
+            print(f"{len(client.guilds)} guilds updated")
+
+
 client = MyClient()
 
 
@@ -47,7 +82,7 @@ class UserSelect(Select):
             for member in self.members
         ]
         super().__init__(
-            placeholder="Select a user", min_values=1, max_values=len(opt), options=opt
+            placeholder="Select one or more users", min_values=1, max_values=len(opt), options=opt
         )
 
     async def callback(self, interaction: Interaction):
@@ -55,7 +90,7 @@ class UserSelect(Select):
             member = self.source_channel.guild.get_member(int(value))
             await member.move_to(self.destination_channel)
         await interaction.response.send_message(
-            "Moved users", ephemeral=True, delete_after=60
+            "Users moved", ephemeral=True, delete_after=60
         )
 
 
@@ -92,7 +127,8 @@ class Move(app_commands.Group):
             ephemeral=True,
         )
         log_channel = client.get_channel(
-            client.logger.get_log_channel(interaction.guild, command_type=self.log_type).id)
+            client.logger.get_log_channel(guild=discord.Object(interaction.guild.id),
+                                          command_type=self.log_type).id)
         await log_channel.send(
             content=f"{interaction.user.mention} has moved {len(source_channel_members)} users "
                     f"from {source_channel.mention} to {destination_channel.mention}",
@@ -151,7 +187,8 @@ class Settings(app_commands.Group):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def log_channel(self, interaction: Interaction, scope: app_commands.Choice[str],
                           channel: TextChannel | Thread):
-        admin_log_channel = Logger.get_log_channel(guild=interaction.guild, command_type=self.log_type)
+        admin_log_channel = Logger.get_log_channel(guild=discord.Object(interaction.guild.id),
+                                                   command_type=self.log_type)
         print(f"interaction.data.values: {interaction.data.values()}")
         if admin_log_channel:
             c = client.get_channel(admin_log_channel.id)
@@ -161,5 +198,14 @@ class Settings(app_commands.Group):
         await interaction.response.send_message(f"You have set the `{scope.name}` log channel to #{channel}")
 
 
+@client.tree.command(guild=TEST_GUILD, description="Get bot version info")
+async def version(interaction: Interaction):
+    version_str = f"`v{BOT_VERSION_MAJOR}.{BOT_VERSION_MINOR}.{BOT_VERSION_PATCH}" \
+                  f"{'-' + BOT_VERSION_IDENT if BOT_VERSION_IDENT else ''}`"
+    await interaction.response.send_message(version_str, ephemeral=True)
+
+
+client.tree.add_command(Settings(), guild=TEST_GUILD)
+client.tree.add_command(Move(), guild=TEST_GUILD)
 
 client.run(os.getenv("DISCORD_TOKEN"))
