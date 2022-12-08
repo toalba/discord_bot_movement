@@ -71,77 +71,95 @@ class SelectUserView(View):
         )
 
 
-@client.tree.command(guild=TEST_GUILD, description="Move users into a voice channel")
-@app_commands.checks.has_permissions(move_members=True)
-async def mass_move_channel(
-        interaction: Interaction,
-        source_channel: VoiceChannel,
-        destination_channel: VoiceChannel,
-):
-    source_channel_members = source_channel.members
-    for member in source_channel_members:
-        await member.move_to(destination_channel)
-    await interaction.response.send_message(
-        f"Moved {len(source_channel_members)} users from {source_channel.mention} to {destination_channel.mention}",
-        delete_after=60,
-        ephemeral=True,
-    )
+class Move(app_commands.Group):
+    log_type = LOG_MOVE
 
-
-@mass_move_channel.error
-async def mass_move_channel_error(interaction: Interaction, error: Exception):
-    await interaction.response.send_message(
-        f"Move action cancelled: You do not have the required permissions", ephemeral=True, delete_after=60
-    )
-
-
-@client.tree.command(guild=TEST_GUILD, description="Move user into a voice channel")
-@app_commands.checks.has_permissions(move_members=True)
-async def move_select_user(
-        interaction: Interaction,
-        source_channel: VoiceChannel,
-        destination_channel: VoiceChannel,
-):
-    if len(source_channel.members) == 0:
+    @app_commands.command(name="all", description="Move **all** users from one voice channel to another")
+    @app_commands.describe(source_channel="Move users from this channel")
+    @app_commands.describe(destination_channel="Move users to this channel")
+    @app_commands.checks.has_permissions(move_members=True)
+    async def move_all(self,
+                       interaction: Interaction,
+                       source_channel: VoiceChannel,
+                       destination_channel: VoiceChannel,
+                       ):
+        source_channel_members = source_channel.members
+        for member in source_channel_members:
+            await member.move_to(destination_channel)
         await interaction.response.send_message(
-            "Move action cancelled: Source channel has no members",
-            ephemeral=True,
+            f"Moved {len(source_channel_members)} users from {source_channel.mention} to {destination_channel.mention}",
             delete_after=60,
+            ephemeral=True,
         )
-        return
+        log_channel = client.get_channel(
+            client.logger.get_log_channel(interaction.guild, command_type=self.log_type).id)
+        await log_channel.send(
+            content=f"{interaction.user.mention} has moved {len(source_channel_members)} users "
+                    f"from {source_channel.mention} to {destination_channel.mention}",
+            allowed_mentions=discord.AllowedMentions(users=False))
 
-    await interaction.response.send_message(
-        "Select a user to move",
-        view=SelectUserView(source_channel, destination_channel),
-        ephemeral=True,
-        delete_after=60,
-    )
+    @app_commands.command(name="users", description="Move **1+** users into another voice channel")
+    @app_commands.checks.has_permissions(move_members=True)
+    async def move_users(self,
+                         interaction: Interaction,
+                         source_channel: VoiceChannel,
+                         destination_channel: VoiceChannel,
+                         ):
+        if len(source_channel.members) == 0:
+            await interaction.response.send_message(
+                "Move action cancelled: Source channel has no members",
+                ephemeral=True,
+                delete_after=60,
+            )
+            return
 
-
-@move_select_user.error
-async def move_select_user_error(interaction, error):
-    if isinstance(error, app_commands.errors.CheckFailure):
         await interaction.response.send_message(
-            "Move action cancelled: You do not have the required permissions",
+            "Select a user to move",
+            view=SelectUserView(source_channel, destination_channel),
             ephemeral=True,
             delete_after=60,
         )
 
+    @move_users.error
+    async def move_users_error(self, interaction, error: Exception):
+        if isinstance(error, app_commands.errors.CheckFailure):
+            await interaction.response.send_message(
+                "Move action cancelled: You do not have the required permissions",
+                ephemeral=True,
+                delete_after=60,
+            )
 
-@client.tree.command(guild=TEST_GUILD, description="Set log channel of specific type")
-@app_commands.choices(log_type=[
-    app_commands.Choice[str](name="Move", value=LOG_MOVE),
-    app_commands.Choice[str](name="Admin", value=LOG_ADMIN),
-])
-async def set_log_channel(interaction: Interaction, log_type: app_commands.Choice[str],
-                          log_channel: TextChannel | Thread):
-    admin_log_channel = Logger.get_log_channel_admin(guild=interaction.guild)
-    if admin_log_channel:
-        c = client.get_channel(admin_log_channel.id)
-        await c.send("Something was changed!")
-    logger.set_log_channel(channel=log_channel, log_type=log_type.value, guild=interaction.guild)
-    await log_channel.send(f"This channel is now the log channel for `{log_type.name}` commands", delete_after=60)
-    await interaction.response.send_message(f"You have set the `{log_type.name}` log channel to #{log_channel}")
+    @move_all.error
+    async def move_all_error(self, interaction: Interaction, error: Exception):
+        await interaction.response.send_message(
+            f"Move action cancelled: You do not have the required permissions\n{error}",
+            ephemeral=True,
+            delete_after=60
+        )
+
+
+class Settings(app_commands.Group):
+    log_type = LOG_ADMIN
+
+    @app_commands.command()
+    @app_commands.describe(scope="category of logged events",
+                           channel="target channel or thread")
+    @app_commands.choices(scope=[
+        app_commands.Choice(name="Move", value=LOG_MOVE),
+        app_commands.Choice(name="Admin", value=LOG_ADMIN),
+    ])
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def log_channel(self, interaction: Interaction, scope: app_commands.Choice[str],
+                          channel: TextChannel | Thread):
+        admin_log_channel = Logger.get_log_channel(guild=interaction.guild, command_type=self.log_type)
+        print(f"interaction.data.values: {interaction.data.values()}")
+        if admin_log_channel:
+            c = client.get_channel(admin_log_channel.id)
+            await c.send("Something was changed!")
+        client.logger.set_log_channel(channel=channel, command_type=scope.value, guild=interaction.guild)
+        await channel.send(f"This channel is now the log channel for `{scope.name}` commands", delete_after=60)
+        await interaction.response.send_message(f"You have set the `{scope.name}` log channel to #{channel}")
+
 
 
 client.run(os.getenv("DISCORD_TOKEN"))

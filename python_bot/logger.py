@@ -24,59 +24,37 @@ class Logger:
         ...
 
     @staticmethod
-    def get_log_channel_move(guild: discord.Object) -> discord.Object:
-        session = db_session.create_session()
-        channel: models.Channel = session.query(models.Channel) \
-            .filter(models.Channel.guild_id == guild.id,
-                    models.Channel.channel_type_id == LOG_MOVE).one()
-        return discord.Object(channel.channel_id)
-
-    @staticmethod
-    def get_log_channel_admin(guild: discord.Guild) -> discord.Object | None:
+    def get_log_channel(guild: discord.Object, command_type: str) -> discord.Object | None:
+        """returns a `TextChannel` or `Thread` which is used to log usage of specified command type,
+        hence a channel type agnostic `discord.Object` is returned"""
         session = db_session.create_session()
         try:
             channel: models.Channel = session.query(models.Channel) \
                 .filter(models.Channel.guild_id == guild.id,
-                        models.Channel.channel_type_id == LOG_ADMIN).one()
+                        models.Channel.channel_type_id == command_type).one()
+            return discord.Object(id=channel.channel_id, type=discord.PartialMessageable)
         except NoResultFound:
             return None
-        else:
-            return discord.Object(channel.channel_id)
 
     @staticmethod
-    def set_log_channel(channel: discord.TextChannel | discord.Thread, log_type: str, guild: discord.Guild):
+    def set_log_channel(channel: discord.TextChannel | discord.Thread, command_type: str, guild: discord.Guild):
         session = db_session.create_session()
+        is_thread = True if type(channel) == discord.Thread else False
         try:
             log_channel: models.Channel = session.query(models.Channel) \
                 .filter(models.Channel.guild_id == guild.id,
-                        models.Channel.channel_type_id == log_type).one()
+                        models.Channel.channel_type_id == command_type).one()
         except NoResultFound:
             # INSERT new row
             session.add(models.Channel(
-                channel_id=channel.id, channel_type_id=log_type, guild_id=guild.id))
+                channel_id=channel.id, channel_type_id=command_type, guild_id=guild.id, is_thread=is_thread))
         else:
+            # UPDATE existing row
             log_channel.channel_id = channel.id
+            log_channel.is_thread = is_thread
             log_channel.updated_at = datetime.datetime.now()
-            session.commit()
         finally:
-            return
-
-    @staticmethod
-    def set_log_channel_move(channel: discord.Object, guild: discord.Object, is_thread=False) -> None:
-        session = db_session.create_session()
-        try:
-            log_channel: models.Channel = session.query(models.Channel) \
-                .filter(models.Channel.guild_id == guild.id,
-                        models.Channel.channel_type_id == LOG_MOVE).one()
-        except NoResultFound:
-            session.add(models.Channel(
-                channel_id=channel.id, channel_type_id=LOG_MOVE, guild_id=guild.id, is_thread=is_thread))
             session.commit()
-        else:
-            log_channel.channel_id = channel.id
-            log_channel.updated_at = datetime.datetime.now()
-            session.commit()
-        finally:
             return
 
 

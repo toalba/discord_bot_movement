@@ -5,7 +5,7 @@ import pytest
 
 import python_bot.data.db_session as db_session
 from python_bot.data import models
-from python_bot.logger import Logger
+from python_bot.logger import Logger, LOG_MOVE, LOG_ADMIN
 
 
 def init_db():
@@ -22,7 +22,7 @@ def test_get_log_channel(example_logger, example_guild, example_channel) -> None
     session.add(example_guild)
     session.add(example_channel)
     # query
-    log_channel = Logger.get_log_channel_move(discord.Object(example_guild.id), session=session)
+    log_channel = Logger.get_log_channel(discord.Object(example_guild.id), command_type=LOG_MOVE)
     assert log_channel.id == example_channel.channel_id
 
 

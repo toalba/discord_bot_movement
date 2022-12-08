@@ -14,7 +14,7 @@ class Guild(SqlAlchemyBase):
     name = Column(String, nullable=True)
     owner = Column(String, nullable=True)
 
-    channels = orm.relationship("Channel", back_populates="")
+    channels = orm.relationship("Channel", back_populates="guild")
 
     def __repr__(self):
         res = f"<Guild {self.id}{f': {self.name}' if self.name else ''}>"
@@ -40,6 +40,9 @@ class Channel(SqlAlchemyBase):
     channel_type_id = Column(ForeignKey("channel_type.id"), primary_key=True)
     guild_id = Column(ForeignKey("guild.id"), primary_key=True, index=True)
     is_thread = Column(Boolean, default=False)
+
+    channel_type = orm.relationship("ChannelType")
+    guild = orm.relationship("Guild", back_populates="channels")
 
     def __repr__(self):
         return f"<Channel {self.channel_type_id}: {self.channel_id}>"
