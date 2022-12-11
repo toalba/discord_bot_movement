@@ -1,40 +1,33 @@
-import os
-
 import pytest
 
 import python_bot.data.db_session as db_session
+import python_bot.data.init_db as init_db
 import python_bot.data.models as models
 from python_bot.data.models import ChannelType
 
 
-def init_db():
-    top_folder = os.path.dirname(__file__)
-    rel_file = os.path.join("..", "db", "test.sqlite")
-    db_file = os.path.abspath(os.path.join(top_folder, rel_file))
-    db_session.global_init(db_file)
-
-
 def test_channel_type() -> None:
-    init_db()
+    init_db.main("test.sqlite")
     session = db_session.create_session()
     res = session.query(ChannelType)
-    assert res.count() > 1
+    assert res.count() > 0
     channel_types = session.query(models.ChannelType).all()
     for ct in channel_types:
-        print(ct)
+        print(f"{ct} {ct.description}")
 
 
 def test_add_guild(example_guild) -> None:
-    init_db()
+    init_db.main("test.sqlite")
     session = db_session.create_session()
     session.add(example_guild)
-    print(session.query(models.Guild).first())
+    guild = session.query(models.Guild).first()
+    print(f"{guild}{f' by {guild.owner}' if guild.owner else ''}")
     session.rollback()
     session.close()
 
 
 def test_add_channel(example_guild, example_channel) -> None:
-    init_db()
+    init_db.main("test.sqlite")
     session = db_session.create_session()
     session.add(example_guild)
     session.add(example_channel)

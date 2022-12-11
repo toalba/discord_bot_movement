@@ -13,6 +13,7 @@ from discord.ui import View
 from dotenv import load_dotenv
 from sqlalchemy.exc import NoResultFound
 
+import data.init_db as init_db
 import python_bot.data.db_session as db_session
 import python_bot.data.models as models
 from python_bot.logger import Logger, LOG_MOVE, LOG_ADMIN
@@ -28,13 +29,6 @@ BOT_VERSION_IDENT = "alpha.1"  # Identifier for development and testing builds
 TEST_GUILD = discord.Object(int(os.getenv("TEST_GUILD")))
 
 
-def init_db():
-    top_folder = os.path.dirname(__file__)
-    rel_file = os.path.join("db", "config.sqlite")
-    db_file = os.path.abspath(os.path.join(top_folder, rel_file))
-    db_session.global_init(db_file)
-
-
 class MyClient(discord.Client):
     def __init__(self) -> None:
         intents = discord.Intents.default()
@@ -46,7 +40,7 @@ class MyClient(discord.Client):
     async def on_ready(self):
         print(f"Logged in as {self.user} (ID: {self.user.id})")
         print("------")
-        init_db()
+        init_db.main("config.sqlite")
         await update_guild_db()
 
     async def setup_hook(self) -> None:
@@ -134,7 +128,7 @@ class Move(app_commands.Group):
                     f"from {source_channel.mention} to {destination_channel.mention}",
             allowed_mentions=discord.AllowedMentions(users=False))
 
-    @app_commands.command(name="users", description="Move **1+** users into another voice channel")
+    @app_commands.command(name="users", description="Move 1+ users into another voice channel")
     @app_commands.checks.has_permissions(move_members=True)
     async def move_users(self,
                          interaction: Interaction,
