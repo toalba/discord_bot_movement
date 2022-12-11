@@ -255,7 +255,7 @@ async def version(interaction: Interaction):
     await interaction.response.send_message(version_str, ephemeral=True)
 
 
-client.tree.add_command(Settings(), guild=TEST_GUILD)
-client.tree.add_command(Move(), guild=TEST_GUILD)
+client.tree.add_command(Settings())
+client.tree.add_command(Move())
 
 client.run(os.getenv("DISCORD_TOKEN"))
