@@ -232,7 +232,8 @@ class Settings(app_commands.Group):
             if admin_log_channel:
                 c = client.get_channel(admin_log_channel.id)
                 await c.send(
-                    f"{interaction.user.mention} has changed {scope.name}-Log channel to {channel.mention}")
+                    f"{interaction.user.mention} has changed {scope.name}-Log channel to {channel.mention}",
+                    allowed_mentions=discord.AllowedMentions(users=False))
             client.logger.set_log_channel(channel=channel, command_type=scope.value, guild=interaction.guild)
             await channel.send(f"This channel is now the log channel for `{scope.name}` commands", delete_after=60)
             await interaction.response.send_message(
