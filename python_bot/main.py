@@ -24,7 +24,7 @@ load_dotenv()
 BOT_VERSION_MAJOR = 1  # Breaking changes, may require backup or reset of database
 BOT_VERSION_MINOR = 0  # New features or significant changes, but still compatible with db
 BOT_VERSION_PATCH = 0  # Bug fixes, no changes in functionality or interfaces
-BOT_VERSION_IDENT = "beta.2"  # Identifier for development and testing builds
+BOT_VERSION_IDENT = "beta.3"  # Identifier for development and testing builds
 
 TEST_GUILD = discord.Object(int(os.getenv("TEST_GUILD")))
 
@@ -68,6 +68,8 @@ client = MyClient()
 
 
 class UserSelect(Select):
+    log_type = LOG_MOVE
+
     def __init__(self, source_channel=None, destination_channel=None):
         self.source_channel = source_channel
         self.destination_channel = destination_channel
@@ -81,13 +83,23 @@ class UserSelect(Select):
         )
 
     async def callback(self, interaction: Interaction):
+        moved_members = ""
         for value in self.values:
             member = self.source_channel.guild.get_member(int(value))
             await member.move_to(self.destination_channel)
+            moved_members += member.display_name + "\n"
         await interaction.response.send_message(
             f"Moved {len(self.values)} users from {self.source_channel.mention} to {self.destination_channel.mention}",
             ephemeral=True, delete_after=60
         )
+        log_channel = client.get_channel(
+            client.logger.get_log_channel(guild=discord.Object(interaction.guild.id),
+                                          command_type=self.log_type).id)
+        await log_channel.send(
+            content=f"{interaction.user.mention} has moved {len(self.values)} users "
+                    f"from {self.source_channel.mention} to {self.destination_channel.mention}\n"
+                    f"```\n{moved_members}\n```",
+            allowed_mentions=discord.AllowedMentions(users=False))
 
 
 class SelectUserView(View):
@@ -137,9 +149,11 @@ class Move(app_commands.Group):
                 await Move.__send_error_message_no_source_channel(interaction)
                 return
         source_channel_members = source_channel.members
+        moved_members = ""
         for member in source_channel_members:
             await member.move_to(channel=destination_channel,
                                  reason=f"Moved by {interaction.user.display_name}")
+            moved_members += member.display_name + "\n"
         await interaction.response.send_message(
             f"Moved {len(source_channel_members)} users from {source_channel.mention} to {destination_channel.mention}",
             delete_after=60,
@@ -150,7 +164,8 @@ class Move(app_commands.Group):
                                           command_type=self.log_type).id)
         await log_channel.send(
             content=f"{interaction.user.mention} has moved {len(source_channel_members)} users "
-                    f"from {source_channel.mention} to {destination_channel.mention}",
+                    f"from {source_channel.mention} to {destination_channel.mention}\n"
+                    f"```\n{moved_members}\n```",
             allowed_mentions=discord.AllowedMentions(users=False))
 
     @app_commands.command(name="users", description="Move 1+ users into another voice channel")
@@ -184,13 +199,6 @@ class Move(app_commands.Group):
             ephemeral=True,
             delete_after=60,
         )
-        log_channel = client.get_channel(
-            client.logger.get_log_channel(guild=discord.Object(interaction.guild.id),
-                                          command_type=self.log_type).id)
-        await log_channel.send(
-            content=f"{interaction.user.mention} has moved users by manual selection "
-                    f"from {source_channel.mention} to {destination_channel.mention}",
-            allowed_mentions=discord.AllowedMentions(users=False))
 
     @move_users.error
     async def move_users_error(self, interaction, error: Exception):
