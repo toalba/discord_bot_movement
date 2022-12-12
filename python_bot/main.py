@@ -24,7 +24,7 @@ load_dotenv()
 BOT_VERSION_MAJOR = 1  # Breaking changes, may require backup or reset of database
 BOT_VERSION_MINOR = 0  # New features or significant changes, but still compatible with db
 BOT_VERSION_PATCH = 0  # Bug fixes, no changes in functionality or interfaces
-BOT_VERSION_IDENT = "beta.1"  # Identifier for development and testing builds
+BOT_VERSION_IDENT = "beta.2"  # Identifier for development and testing builds
 
 TEST_GUILD = discord.Object(int(os.getenv("TEST_GUILD")))
 
@@ -235,7 +235,7 @@ class Settings(app_commands.Group):
                     f"{interaction.user.mention} has changed {scope.name}-Log channel to {channel.mention}",
                     allowed_mentions=discord.AllowedMentions(users=False))
             client.logger.set_log_channel(channel=channel, command_type=scope.value, guild=interaction.guild)
-            await channel.send(f"This channel is now the log channel for `{scope.name}` commands", delete_after=60)
+            await channel.send(f"This channel is now the log channel for `{scope.name}` commands")
             await interaction.response.send_message(
                 f"You have set the `{scope.name}` log channel to #{channel.mention}")
         except discord.Forbidden as e:
@@ -248,7 +248,7 @@ class Settings(app_commands.Group):
                 f"Missing permissions: {e.text}\nMy permissions are {permissions}")
 
 
-@client.tree.command(guild=TEST_GUILD, description="Get bot version info")
+@client.tree.command(description="Get bot version info")
 async def version(interaction: Interaction):
     version_str = f"`v{BOT_VERSION_MAJOR}.{BOT_VERSION_MINOR}.{BOT_VERSION_PATCH}" \
                   f"{'-' + BOT_VERSION_IDENT if BOT_VERSION_IDENT else ''}`"
