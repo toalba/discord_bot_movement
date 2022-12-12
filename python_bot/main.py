@@ -237,7 +237,7 @@ class Settings(app_commands.Group):
             client.logger.set_log_channel(channel=channel, command_type=scope.value, guild=interaction.guild)
             await channel.send(f"This channel is now the log channel for `{scope.name}` commands")
             await interaction.response.send_message(
-                f"You have set the `{scope.name}` log channel to #{channel.mention}")
+                f"You have set the `{scope.name}` log channel to #{channel.mention}", ephemeral=True, delete_after=60)
         except discord.Forbidden as e:
             app_permissions = interaction.app_permissions
             permissions = {
